@@ -4,6 +4,9 @@ namespace HanWoolderink88\Container\Tests;
 
 use HanWoolderink88\Container\Container;
 use HanWoolderink88\Container\ContainerAddServiceException;
+use HanWoolderink88\Container\TestClasses\Bar1;
+use HanWoolderink88\Container\TestClasses\Foo1;
+use HanWoolderink88\Container\TestClasses\Foo2;
 use HanWoolderink88\Container\TestClasses\FooBar1;
 use PHPUnit\Framework\TestCase;
 
@@ -33,10 +36,10 @@ class CreateContainerTest extends TestCase
         $name = FooBar1::class;
         $params = ['name' => 'Han', 'surname' => 'Woolderink'];
         $container = new Container();
-        $container->addServiceReference($name, $params);
+        $container->addServiceReference($name, $params, [Foo1::class, Bar1::class]);
         $container->buildIndex();
 
-        $found = $container->get($name);
+        $found = $container->get(Foo1::class);
 
         $this->assertEquals('Hello Han Woolderink', $found->sayHi(), 'not the same');
     }
