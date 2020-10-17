@@ -1,0 +1,7 @@
+version: "3.4"
+services:
+  web:
+    container_name: web
+    image: hanwoolderink/php-dev:latest
+    ports: [80:80]
+    volumes: [.:/var/www/project]
