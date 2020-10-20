@@ -7,6 +7,7 @@ use HanWoolderink88\Container\Model\IndexItem;
 use HanWoolderink88\Container\Model\ServiceInfo;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
+use ReflectionException;
 
 class Container implements ContainerInterface
 {
@@ -74,6 +75,7 @@ class Container implements ContainerInterface
      * @param string $id name or alias of the service
      * @return mixed
      * @noinspection PhpMissingParamTypeInspection
+     * @throws ReflectionException|ContainerCannotWireException
      */
     public function get($id)
     {
@@ -83,24 +85,35 @@ class Container implements ContainerInterface
         }
 
         if ($item->getService() === null) {
-            $reflection = new ReflectionClass($item->getName());
-            $constructor = $reflection->getConstructor();
-            $paramOrder = $constructor->getParameters();
-
-            $params = $item->getConstructorParams();
+            $constructorParams = $this->getConstructorParams($item->getName());
             $orderedParams = [];
-            foreach ($paramOrder as $paramI) {
-                $name = $paramI->getName();
-                if (isset($params[$name])) {
-                    $orderedParams[] = $params[$name];
-                } else {
-                    $orderedParams[] = null;
+            $fixedParams = $item->getConstructorParams();
+
+            // we have DI and Registered Params
+            foreach ($constructorParams as $constructorParam) {
+                $isFixedParam = isset($fixedParams[$constructorParam['name']]);
+                $isNullable = $constructorParam['nullable'];
+                $value = null;
+
+                if ($isFixedParam) {
+                    // a wildcard param is defined in the route path by /{name}
+                    $value = $fixedParams[$constructorParam['name']] ?? null;
+                } elseif ($this->has($constructorParam['type'])) {
+                    $value = $this->get($constructorParam['type']);
                 }
+
+                if ($value === null && $isNullable === false) {
+                    $name = $constructorParam['name'];
+                    $msg = "Callback function has argument with name \"{$name}\" but no param or DI service was found";
+                    throw new ContainerCannotWireException($msg);
+                }
+
+                $orderedParams[] = $value;
             }
 
-            $className = $item->getName();
+            $name = $item->getName();
 
-            return new $className(...$orderedParams);
+            return new $name(...$orderedParams);
         }
 
         return $item->getService();
@@ -125,5 +138,32 @@ class Container implements ContainerInterface
         }
 
         return null;
+    }
+
+    /**
+     * @param string $objectName
+     * @return mixed[][]
+     * @throws ReflectionException
+     */
+    private function getConstructorParams(string $objectName): array
+    {
+        $reflection = new ReflectionClass($objectName);
+        $constructor = $reflection->getConstructor();
+
+        if ($constructor === null) {
+            return [];
+        }
+
+        $params = [];
+        foreach ($constructor->getParameters() as $fParam) {
+            $params[] = [
+                'name' => $fParam->getName(),
+                /** @phpstan-ignore-next-line */
+                'type' => $fParam->getType() ? $fParam->getType()->getName() : null,
+                'nullable' => $fParam->allowsNull()
+            ];
+        }
+
+        return $params;
     }
 }

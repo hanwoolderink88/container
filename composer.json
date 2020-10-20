@@ -25,10 +25,10 @@
             "@unit",
             "@sniff"
         ],
-        "stan": "vendor/bin/phpstan analyse --level 6 src Tests",
+        "stan": "vendor/bin/phpstan analyse --level 6 src",
         "unit": "vendor/bin/phpunit Tests",
         "unit-coverage": "vendor/bin/phpunit --coverage-html Tests/html Tests",
-        "sniff": "vendor/bin/phpcs --standard=ruleset.xml src Tests",
-        "sniff-fix": "vendor/bin/phpcbf --standard=ruleset.xml Src Tests"
+        "sniff": "vendor/bin/phpcs --standard=ruleset.xml src",
+        "sniff-fix": "vendor/bin/phpcbf --standard=ruleset.xml Src"
     }
 }
