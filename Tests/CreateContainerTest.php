@@ -3,8 +3,8 @@
 namespace HanWoolderink88\Container\Tests;
 
 use HanWoolderink88\Container\Container;
-use HanWoolderink88\Container\ContainerAddServiceException;
-use HanWoolderink88\Container\ContainerCannotWireException;
+use HanWoolderink88\Container\Exception\ContainerAddServiceException;
+use HanWoolderink88\Container\Exception\ContainerCannotWireException;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;
 
@@ -20,12 +20,15 @@ class CreateContainerTest extends TestCase
         $service = new HelloWorld();
 
         $container = new Container();
-        $container->addService($service);
-        $container->buildIndex();
+        $container->addService($service, null, true);
 
         $found = $container->get(HelloWorld::class);
 
-        $this->assertTrue(get_class($found) === HelloWorld::class, 'Class is not the same');
+        if ($found !== null) {
+            $this->assertTrue(get_class($found) === HelloWorld::class, 'Class is not the same');
+        } else {
+            $this->assertTrue($found !== null, 'The service was not returned correctly');
+        }
     }
 
     /**
@@ -39,12 +42,15 @@ class CreateContainerTest extends TestCase
 
         $container->addServiceReference(HelloWorld::class);
         $container->addServiceReference(FooBar1::class, ['name' => 'Han', 'surname' => 'Woolderink']);
-
-        $container->buildIndex();
+        $container->sortIndex();
 
         $found = $container->get(Foo1::class);
 
-        $this->assertEquals('Hello Han Woolderink and Hello World', $found->sayHi(), 'not the same');
+        if ($found !== null) {
+            $this->assertEquals('Hello Han Woolderink and Hello World', $found->sayHi(), 'not the same');
+        } else {
+            $this->assertTrue($found !== null, 'The service was not returned correctly');
+        }
     }
 }
 

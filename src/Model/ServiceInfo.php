@@ -2,11 +2,16 @@
 
 namespace HanWoolderink88\Container\Model;
 
-use HanWoolderink88\Container\AliasFinder;
+use HanWoolderink88\Container\Traits\AliasFinder;
 use ReflectionException;
 
 class ServiceInfo
 {
+    use AliasFinder;
+
+    /**
+     * @var string
+     */
     private string $name;
 
     /**
@@ -14,6 +19,9 @@ class ServiceInfo
      */
     private array $aliases;
 
+    /**
+     * @var object|null
+     */
     private ?object $service = null;
 
     /**
@@ -22,20 +30,26 @@ class ServiceInfo
     private ?array $constructorParams = null;
 
     /**
+     * @var int
+     */
+    private int $priority;
+
+    /**
      * ServiceInfo constructor.
      * @param string $name
      * @param string[]|null $aliases
+     * @param int $priority
      * @throws ReflectionException
      */
-    public function __construct(string $name, ?array $aliases = null)
+    public function __construct(string $name, ?array $aliases = null, int $priority = 9999)
     {
         $this->name = $name;
+        $this->priority = $priority;
 
         if ($aliases !== null) {
             $this->aliases = $aliases;
         } else {
-            $reflect = new AliasFinder();
-            $this->aliases = $reflect->reflectAliases($name);
+            $this->aliases = $this->reflectAliases($name);
         }
     }
 
@@ -97,6 +111,25 @@ class ServiceInfo
     public function setConstructorParams(array $constructorParams): ServiceInfo
     {
         $this->constructorParams = $constructorParams;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getPriority(): int
+    {
+        return $this->priority;
+    }
+
+    /**
+     * @param int $priority
+     * @return ServiceInfo
+     */
+    public function setPriority(int $priority): ServiceInfo
+    {
+        $this->priority = $priority;
 
         return $this;
     }

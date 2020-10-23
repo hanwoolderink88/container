@@ -1,11 +1,11 @@
 <?php
 
-namespace HanWoolderink88\Container;
+namespace HanWoolderink88\Container\Traits;
 
 use ReflectionClass;
 use ReflectionException;
 
-class AliasFinder
+trait AliasFinder
 {
     /**
      * @param string $name

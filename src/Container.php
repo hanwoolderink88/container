@@ -3,7 +3,8 @@
 namespace HanWoolderink88\Container;
 
 use Exception;
-use HanWoolderink88\Container\Model\IndexItem;
+use HanWoolderink88\Container\Exception\ContainerAddServiceException;
+use HanWoolderink88\Container\Exception\ContainerCannotWireException;
 use HanWoolderink88\Container\Model\ServiceInfo;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
@@ -17,18 +18,28 @@ class Container implements ContainerInterface
     private array $services = [];
 
     /**
-     * @var IndexItem[]
+     * @var ContainerIndex
      */
-    private array $index = [];
+    private ContainerIndex $index;
+
+    /**
+     * Container constructor.
+     */
+    public function __construct()
+    {
+        $this->index = new ContainerIndex();
+    }
 
     /**
      * @param object $service
      * @param string[]|null $aliases
+     * @param bool $updateIndex
      * @throws ContainerAddServiceException
      */
-    public function addService(object $service, ?array $aliases = null): void
+    public function addService(object $service, ?array $aliases = null, bool $updateIndex = false): void
     {
         $name = get_class($service);
+
         try {
             $serviceInfo = new ServiceInfo($name, $aliases);
         } catch (Exception $e) {
@@ -36,17 +47,26 @@ class Container implements ContainerInterface
         }
 
         $serviceInfo->setService($service);
+
         $this->services[] = $serviceInfo;
+
+        $pos = count($this->services) - 1;
+        $this->index->addItem($serviceInfo, $pos, $updateIndex);
     }
 
     /**
      * @param string $name
      * @param mixed[] $constructorParams
      * @param string[]|null $aliases
+     * @param bool $updateIndex
      * @throws ContainerAddServiceException
      */
-    public function addServiceReference(string $name, array $constructorParams = [], ?array $aliases = null): void
-    {
+    public function addServiceReference(
+        string $name,
+        array $constructorParams = [],
+        ?array $aliases = null,
+        bool $updateIndex = false
+    ): void {
         try {
             $serviceInfo = new ServiceInfo($name, $aliases);
         } catch (Exception $e) {
@@ -56,19 +76,9 @@ class Container implements ContainerInterface
         $serviceInfo->setConstructorParams($constructorParams);
 
         $this->services[] = $serviceInfo;
-    }
 
-    public function buildIndex(): void
-    {
-        $this->index = [];
-
-        foreach ($this->services as $pos => $service) {
-            $name = $service->getName();
-            $this->index[] = new IndexItem($name, $name, $pos);
-            foreach ($service->getAliases() as $alias) {
-                $this->index[] = new IndexItem($name, $alias, $pos);
-            }
-        }
+        $pos = count($this->services) - 1;
+        $this->index->addItem($serviceInfo, $pos, $updateIndex);
     }
 
     /**
@@ -79,7 +89,8 @@ class Container implements ContainerInterface
      */
     public function get($id)
     {
-        $item = $this->find($id);
+        $key = $this->index->find($id);
+        $item = $key !== null ? $this->services[$key] : null;
         if ($item === null) {
             return null;
         }
@@ -91,20 +102,20 @@ class Container implements ContainerInterface
 
             // we have DI and Registered Params
             foreach ($constructorParams as $constructorParam) {
-                $isFixedParam = isset($fixedParams[$constructorParam['name']]);
+                $name = $constructorParam['name'];
+                $type = $constructorParam['type'];
                 $isNullable = $constructorParam['nullable'];
-                $value = null;
+                $isFixedParam = isset($fixedParams[$name]);
 
+                $value = null;
                 if ($isFixedParam) {
-                    // a wildcard param is defined in the route path by /{name}
-                    $value = $fixedParams[$constructorParam['name']] ?? null;
-                } elseif ($this->has($constructorParam['type'])) {
-                    $value = $this->get($constructorParam['type']);
+                    $value = $fixedParams[$name] ?? null;
+                } elseif ($this->has($type)) {
+                    $value = $this->get($type);
                 }
 
                 if ($value === null && $isNullable === false) {
-                    $name = $constructorParam['name'];
-                    $msg = "Callback function has argument with name \"{$name}\" but no param or DI service was found";
+                    $msg = "Callback function has argument \"{$type} \${$name}\" but no param or DI service was found";
                     throw new ContainerCannotWireException($msg);
                 }
 
@@ -124,20 +135,19 @@ class Container implements ContainerInterface
      * @return bool
      * @noinspection PhpMissingParamTypeInspection
      */
-    public function has($id)
+    public function has($id): bool
     {
-        return (bool)$this->find($id);
+        return $this->index->find($id) !== null;
     }
 
-    private function find(string $id): ?ServiceInfo
+    /**
+     * @return $this
+     */
+    public function sortIndex():self
     {
-        foreach ($this->index as $item) {
-            if ($item->getKey() === $id) {
-                return $this->services[$item->getPosition()];
-            }
-        }
+        $this->index->sortIndex();
 
-        return null;
+        return $this;
     }
 
     /**
