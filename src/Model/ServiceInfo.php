@@ -97,7 +97,7 @@ class ServiceInfo
     }
 
     /**
-     * @return array|null
+     * @return mixed[]|null
      */
     public function getConstructorParams(): ?array
     {
