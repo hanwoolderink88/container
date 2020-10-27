@@ -31,7 +31,7 @@ trait AliasFinder
         $parent = $reflection->getParentClass();
         if ($parent !== false) {
             $nest = $this->getParentClasses($parent, $returnArray);
-            $returnArray = [...$nest, $parent->name];
+            $returnArray = [...$nest, (string)$parent->name];
         }
 
         return $returnArray;

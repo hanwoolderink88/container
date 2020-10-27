@@ -97,9 +97,9 @@ class ServiceInfo
     }
 
     /**
-     * @return mixed[]
+     * @return array|null
      */
-    public function getConstructorParams(): array
+    public function getConstructorParams(): ?array
     {
         return $this->constructorParams;
     }
