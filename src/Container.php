@@ -51,7 +51,7 @@ class Container implements ContainerInterface
         $this->services[] = $serviceInfo;
 
         $pos = count($this->services) - 1;
-        $this->index->addItem($serviceInfo, $pos, $updateIndex);
+        $this->index->addItem($serviceInfo, $pos, $updateIndex, true);
     }
 
     /**
@@ -78,7 +78,7 @@ class Container implements ContainerInterface
         $this->services[] = $serviceInfo;
 
         $pos = count($this->services) - 1;
-        $this->index->addItem($serviceInfo, $pos, $updateIndex);
+        $this->index->addItem($serviceInfo, $pos, $updateIndex, false);
     }
 
     /**

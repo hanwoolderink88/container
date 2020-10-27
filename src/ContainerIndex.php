@@ -25,19 +25,22 @@ class ContainerIndex
      * @param ServiceInfo $service
      * @param int $pos
      * @param bool $sort
+     * @param bool $prepend
      * @return ContainerIndex
      */
-    public function addItem(ServiceInfo $service, int $pos, bool $sort = false): self
+    public function addItem(ServiceInfo $service, int $pos, bool $sort = false, bool $prepend = false): self
     {
         $name = $service->getName();
         $isReference = $service->getService() === null;
 
         // add the definitive class
-        $this->index[] = new IndexItem($name, $name, $isReference, $pos, $service->getPriority());
+        $item = new IndexItem($name, $name, $isReference, $pos, $service->getPriority());
+        $this->addItemToIndex($item, $prepend);
 
         // add all polymorphic references
         foreach ($service->getAliases() as $alias) {
-            $this->index[] = new IndexItem($name, $alias, $isReference, $pos, $service->getPriority());
+            $item = new IndexItem($name, $alias, $isReference, $pos, $service->getPriority());
+            $this->addItemToIndex($item, $prepend);
         }
 
         if ($sort === true) {
@@ -116,5 +119,20 @@ class ContainerIndex
     private function sortByPriority(IndexItem $a, IndexItem $b): int
     {
         return strcmp((string)$a->getPriority(), (string)$b->getPriority());
+    }
+
+    /**
+     * We want to prepend when the item has a object attached, these items have priority.
+     * This way of presorting help so that we do not have to re-sort the array on every new entry
+     *
+     * @param IndexItem $item
+     * @param bool $prepend
+     */
+    private function addItemToIndex(IndexItem $item, bool $prepend): void
+    {
+        if ($prepend) {
+            $this->index = [$item, ...$this->index];
+        }
+        $this->index[] = $item;
     }
 }
